@@ -1,0 +1,76 @@
+# =============================================================================
+# Android / Gradle
+# =============================================================================
+*.iml
+.gradle/
+/local.properties
+/.idea/caches/
+/.idea/libraries/
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.ap_
+*.aab
+
+# Keystore / Signing
+*.jks
+*.keystore
+keystore.properties
+release/
+
+# Generated files
+app/build/
+app/release/
+
+# Proguard
+proguard/
+
+# Log files
+*.log
+
+# Android Studio
+*.iws
+out/
+gen/
+
+# Kotlin build cache
+.kotlin/
+
+# =============================================================================
+# IDE — IntelliJ / Android Studio
+# =============================================================================
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/modules
+.idea/shelf
+# Keep: .idea/runConfigurations (useful for team)
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# =============================================================================
+# Sensitive / Local config
+# =============================================================================
+local.properties
+*.env
+secrets.properties
+google-services.json
