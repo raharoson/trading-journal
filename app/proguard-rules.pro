@@ -1,0 +1,3 @@
+-keepattributes SourceFile,LineNumberTable
+-keep class com.trading.journal.** { *; }
+-dontwarn com.trading.journal.**
