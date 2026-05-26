@@ -1,5 +1,10 @@
 package com.trading.journal.ui.statistics
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -8,29 +13,80 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trading.journal.domain.model.TradeStatistics
 import com.trading.journal.ui.components.EquityChart
 import com.trading.journal.ui.components.PnlBarChart
 import com.trading.journal.ui.theme.*
+import com.trading.journal.util.ChartBitmapRenderer
+import com.trading.journal.util.GalleryExporter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(containerColor = Background) { padding ->
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Permission de stockage refusée")
+            }
+        }
+        // User can tap the button again once permission is granted
+    }
+
+    fun saveChart(stats: TradeStatistics) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+        coroutineScope.launch {
+            val displayMetrics = context.resources.displayMetrics
+            val widthPx = displayMetrics.widthPixels
+            val bitmap = withContext(Dispatchers.Default) {
+                ChartBitmapRenderer.renderEquityChart(
+                    equityCurve = stats.equityCurve,
+                    totalPnl = stats.totalPnl,
+                    maxDrawdown = stats.maxDrawdown,
+                    closedTrades = stats.closedTrades,
+                    widthPx = widthPx
+                )
+            }
+            val result = GalleryExporter.saveBitmapToGallery(context, bitmap)
+            snackbarHostState.showSnackbar(
+                if (result.isSuccess) "Graphique enregistré dans Galerie › TradingJournal"
+                else "Erreur : ${result.exceptionOrNull()?.message}"
+            )
+        }
+    }
+
+    Scaffold(
+        containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Primary)
@@ -79,7 +135,7 @@ fun StatisticsScreen(
                 )
             }
 
-            item { EquitySection(stats) }
+            item { EquitySection(stats, onSave = { saveChart(stats) }) }
             item { PerformanceSection(stats) }
             item { WinRateSection(stats) }
             item { SymbolsSection(stats) }
@@ -88,8 +144,20 @@ fun StatisticsScreen(
 }
 
 @Composable
-private fun EquitySection(stats: TradeStatistics) {
-    StatCard("Courbe d'équité") {
+private fun EquitySection(stats: TradeStatistics, onSave: () -> Unit) {
+    StatCard(
+        title = "Courbe d'équité",
+        action = {
+            IconButton(onClick = onSave) {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = "Enregistrer le graphique",
+                    tint = Primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    ) {
         Spacer(Modifier.height(4.dp))
         EquityChart(
             data = stats.equityCurve,
@@ -238,7 +306,11 @@ private fun SymbolsSection(stats: TradeStatistics) {
 }
 
 @Composable
-private fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun StatCard(
+    title: String,
+    action: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -246,7 +318,14 @@ private fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit)
             .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = OnBackground, fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = OnBackground, fontWeight = FontWeight.SemiBold)
+            action?.invoke()
+        }
         content()
     }
 }
