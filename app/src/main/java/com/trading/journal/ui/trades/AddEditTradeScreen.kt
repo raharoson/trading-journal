@@ -200,7 +200,7 @@ fun AddEditTradeScreen(
                 DateTimeField(
                     label = "Date d'entrée",
                     value = state.entryDate,
-                    onValueChange = { viewModel.updateField { copy(entryDate = it) } }
+                    onValueChange = { viewModel.updateField { copy(entryDate = it ?: LocalDateTime.now()) } }
                 )
                 Spacer(Modifier.height(8.dp))
                 DateTimeField(

@@ -147,12 +147,12 @@ fun TradeDetailScreen(
             }
 
             // R-Multiple
-            if (t.rMultiple != null) {
+            t.rMultiple?.let { rm ->
                 DetailSection("Risque") {
                     DetailRow(
                         Icons.Default.Balance, "R-Multiple",
-                        "${"%.2f".format(t.rMultiple)}R",
-                        valueColor = if ((t.rMultiple) >= 0) ProfitGreen else LossRed
+                        "${"%.2f".format(rm)}R",
+                        valueColor = if (rm >= 0) ProfitGreen else LossRed
                     )
                 }
             }
